@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/components/ui/toast"
 import { useFinancialData } from "@/hooks/useFinancialData"
 import { formatCurrency, getCategoryName } from "@/lib/storage"
 import { ExpenseCategory, ExpenseCategoryKey } from "@/lib/types"
@@ -36,6 +37,7 @@ type FixedExpenseFormData = z.infer<typeof fixedExpenseFormSchema>
 
 export default function FixedExpensesPage() {
   const { data, addFixedExpense, updateFixedExpense, deleteFixedExpense, isLoading } = useFinancialData()
+  const { toast } = useToast()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingExpense, setEditingExpense] = useState<string | null>(null)
 
@@ -58,14 +60,32 @@ export default function FixedExpensesPage() {
   })
 
   const onSubmit = async (formData: FixedExpenseFormData) => {
-    if (editingExpense) {
-      updateFixedExpense(editingExpense, formData)
-      setEditingExpense(null)
-    } else {
-      addFixedExpense(formData)
+    try {
+      if (editingExpense) {
+        updateFixedExpense(editingExpense, formData)
+        toast({
+          type: "success",
+          title: "Gasto fixo atualizado!",
+          description: `${formData.name} foi atualizado com sucesso.`
+        })
+        setEditingExpense(null)
+      } else {
+        addFixedExpense(formData)
+        toast({
+          type: "success",
+          title: "Gasto fixo adicionado!",
+          description: `${formData.name} foi adicionado aos seus gastos fixos.`
+        })
+      }
+      reset()
+      setIsDialogOpen(false)
+    } catch (error) {
+      toast({
+        type: "error",
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar o gasto fixo. Tente novamente."
+      })
     }
-    reset()
-    setIsDialogOpen(false)
   }
 
   const handleEdit = (expense: typeof data.fixedExpenses[0]) => {
@@ -79,13 +99,25 @@ export default function FixedExpensesPage() {
   }
 
   const handleDelete = (id: string) => {
+    const expense = data.fixedExpenses.find(e => e.id === id)
     if (confirm("Tem certeza que deseja excluir este gasto fixo?")) {
       deleteFixedExpense(id)
+      toast({
+        type: "success",
+        title: "Gasto fixo removido!",
+        description: expense ? `${expense.name} foi removido dos seus gastos fixos.` : "Gasto fixo removido com sucesso."
+      })
     }
   }
 
   const toggleActive = (id: string, isActive: boolean) => {
+    const expense = data.fixedExpenses.find(e => e.id === id)
     updateFixedExpense(id, { isActive: !isActive })
+    toast({
+      type: "info",
+      title: !isActive ? "Gasto ativado!" : "Gasto desativado!",
+      description: expense ? `${expense.name} foi ${!isActive ? 'ativado' : 'desativado'}.` : "Status alterado com sucesso."
+    })
   }
 
   const handleDialogClose = () => {
@@ -115,17 +147,24 @@ export default function FixedExpensesPage() {
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Gastos Fixos</h1>
-            <p className="text-muted-foreground">
-              Gerencie suas despesas mensais recorrentes
-            </p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-red-500/20 to-red-600/10">
+              <Receipt className="h-6 w-6 text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                Gastos Fixos
+              </h1>
+              <p className="text-muted-foreground">
+                Gerencie suas despesas mensais recorrentes
+              </p>
+            </div>
           </div>
           
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button size="lg" className="shadow-sm hover:shadow-md transition-all duration-300">
                 <Plus className="h-4 w-4 mr-2" />
                 Novo Gasto Fixo
               </Button>
@@ -234,35 +273,44 @@ export default function FixedExpensesPage() {
         </div>
 
         {/* Resumo */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total de Gastos Ativos</CardTitle>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="shadow-sm border-0 bg-gradient-to-br from-red-50 via-red-50 to-red-100 dark:from-red-950/50 dark:via-red-950/30 dark:to-red-900/50 transition-all duration-300 hover:shadow-md hover:scale-[1.02]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-red-800 dark:text-red-200">Total de Gastos Ativos</CardTitle>
+              <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/50">
+                <Receipt className="h-4 w-4 text-red-700 dark:text-red-300" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-2xl font-bold text-red-700 dark:text-red-400">
                 {formatCurrency(totalActiveExpenses)}
               </div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Gastos Cadastrados</CardTitle>
+          <Card className="shadow-sm border-0 bg-gradient-to-br from-blue-50 via-blue-50 to-blue-100 dark:from-blue-950/50 dark:via-blue-950/30 dark:to-blue-900/50 transition-all duration-300 hover:shadow-md hover:scale-[1.02]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-blue-800 dark:text-blue-200">Gastos Cadastrados</CardTitle>
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+                <Receipt className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-blue-700 dark:text-blue-400">
                 {data.fixedExpenses.length}
               </div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Gastos Ativos</CardTitle>
+          <Card className="shadow-sm border-0 bg-gradient-to-br from-green-50 via-green-50 to-green-100 dark:from-green-950/50 dark:via-green-950/30 dark:to-green-900/50 transition-all duration-300 hover:shadow-md hover:scale-[1.02]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-green-800 dark:text-green-200">Gastos Ativos</CardTitle>
+              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50">
+                <Receipt className="h-4 w-4 text-green-700 dark:text-green-300" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-green-700 dark:text-green-400">
                 {data.fixedExpenses.filter(e => e.isActive).length}
               </div>
             </CardContent>
@@ -270,22 +318,28 @@ export default function FixedExpensesPage() {
         </div>
 
         {/* Lista de Gastos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Receipt className="h-5 w-5" />
-              Lista de Gastos Fixos
-            </CardTitle>
+        <Card className="shadow-sm border-0 bg-gradient-to-br from-card to-card/50 transition-all duration-300 hover:shadow-md">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Receipt className="h-4 w-4 text-primary" />
+              </div>
+              <CardTitle className="text-lg font-semibold">Lista de Gastos Fixos</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             {data.fixedExpenses.length === 0 ? (
-              <div className="text-center py-8">
-                <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Nenhum gasto fixo cadastrado</h3>
-                <p className="text-muted-foreground mb-4">
-                  Comece adicionando suas despesas mensais recorrentes
-                </p>
-                <Button onClick={() => setIsDialogOpen(true)}>
+              <div className="text-center py-12">
+                <div className="w-20 h-20 mx-auto bg-muted/50 rounded-full flex items-center justify-center mb-6">
+                  <Receipt className="h-10 w-10 text-muted-foreground" />
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold">Nenhum gasto fixo cadastrado</h3>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    Comece adicionando suas despesas mensais recorrentes como aluguel, financiamentos, assinaturas, etc.
+                  </p>
+                </div>
+                <Button onClick={() => setIsDialogOpen(true)} size="lg" className="mt-6 shadow-sm hover:shadow-md transition-all duration-300">
                   <Plus className="h-4 w-4 mr-2" />
                   Adicionar Primeiro Gasto
                 </Button>
@@ -295,26 +349,38 @@ export default function FixedExpensesPage() {
                 {data.fixedExpenses.map((expense) => (
                   <div
                     key={expense.id}
-                    className={`p-4 rounded-lg border ${
-                      expense.isActive ? "bg-white" : "bg-muted/50"
-                    } hover:bg-muted/25 transition-colors`}
+                    className={`p-6 rounded-xl border-0 shadow-sm transition-all duration-300 hover:shadow-md hover:scale-[1.01] ${
+                      expense.isActive 
+                        ? "bg-gradient-to-r from-card via-card to-card/80" 
+                        : "bg-gradient-to-r from-muted/30 via-muted/20 to-muted/10"
+                    }`}
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                       <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <h3 className={`font-medium ${!expense.isActive ? "line-through text-muted-foreground" : ""}`}>
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <h3 className={`font-semibold text-lg ${!expense.isActive ? "line-through text-muted-foreground" : ""}`}>
                             {expense.name}
                           </h3>
-                          <Badge variant="outline">
+                          <Badge variant="outline" className="bg-primary/10 border-primary/20 text-primary font-medium">
                             {getCategoryName(expense.category)}
                           </Badge>
                           {!expense.isActive && (
-                            <Badge variant="secondary">Inativo</Badge>
+                            <Badge variant="secondary" className="bg-muted/50 text-muted-foreground">
+                              Inativo
+                            </Badge>
                           )}
                         </div>
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                          <span>Valor: <strong className="text-red-600">{formatCurrency(expense.amount)}</strong></span>
-                          <span>Vencimento: dia <strong>{expense.dueDay}</strong></span>
+                        <div className="flex flex-wrap items-center gap-6 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">Valor:</span>
+                            <span className="font-bold text-red-600 dark:text-red-400 text-base">
+                              {formatCurrency(expense.amount)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">Vencimento:</span>
+                            <span className="font-semibold">dia {expense.dueDay}</span>
+                          </div>
                         </div>
                         {expense.description && (
                           <p className="text-sm text-muted-foreground">{expense.description}</p>
@@ -327,17 +393,19 @@ export default function FixedExpensesPage() {
                           variant="ghost"
                           size="sm"
                           title={expense.isActive ? "Desativar" : "Ativar"}
+                          className="hover:bg-muted/50 transition-all duration-200"
                         >
                           {expense.isActive ? (
-                            <ToggleRight className="h-4 w-4 text-green-600" />
+                            <ToggleRight className="h-5 w-5 text-green-600 dark:text-green-400" />
                           ) : (
-                            <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                            <ToggleLeft className="h-5 w-5 text-muted-foreground" />
                           )}
                         </Button>
                         <Button
                           onClick={() => handleEdit(expense)}
                           variant="ghost"
                           size="sm"
+                          className="hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -345,7 +413,7 @@ export default function FixedExpensesPage() {
                           onClick={() => handleDelete(expense.id)}
                           variant="ghost"
                           size="sm"
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-700 dark:hover:text-red-300 transition-all duration-200"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

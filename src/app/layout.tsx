@@ -1,3 +1,5 @@
+import { ThemeProvider } from "@/components/theme/theme-provider";
+import { ToastProvider } from "@/components/ui/toast";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -14,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Controle Financeiro Pessoal",
-  description: "Sistema simples para controle de finanças pessoais",
+  description: "Sistema moderno e intuitivo para controle de finanças pessoais",
 };
 
 export default function RootLayout({
@@ -23,11 +25,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <ThemeProvider
+          defaultTheme="system"
+          storageKey="financial-control-theme"
+        >
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
