@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useFinancialData } from "@/hooks/useFinancialData"
+import { useFinancialDataAPI } from "@/hooks/useFinancialDataAPI"
 import { formatCurrency, getCategoryName } from "@/lib/storage"
 import { ExpenseCategory, ExpenseCategoryKey, variableExpenseSchema } from "@/lib/types"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -24,10 +24,10 @@ const variableExpenseFormSchema = variableExpenseSchema.omit({
 type VariableExpenseFormData = z.infer<typeof variableExpenseFormSchema>
 
 export default function VariableExpensesPage() {
-  const { data, addVariableExpense, updateVariableExpense, deleteVariableExpense, isLoading } = useFinancialData()
+  const { data, addVariableExpense, updateVariableExpense, deleteVariableExpense, isLoading } = useFinancialDataAPI()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingExpense, setEditingExpense] = useState<string | null>(null)
-  const [filterMonth, setFilterMonth] = useState<string>("")
+  const [filterMonth, setFilterMonth] = useState<string>("all")
   const [filterCategory, setFilterCategory] = useState<string>("all")
 
   const {
@@ -52,7 +52,7 @@ export default function VariableExpensesPage() {
   const filteredExpenses = useMemo(() => {
     let filtered = data.variableExpenses
 
-    if (filterMonth) {
+    if (filterMonth && filterMonth !== "all") {
       const [year, month] = filterMonth.split("-")
       filtered = filtered.filter(expense => {
         const expenseDate = new Date(expense.date)
@@ -324,7 +324,7 @@ export default function VariableExpensesPage() {
                     <SelectValue placeholder="Todos os meses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os meses</SelectItem>
+                    <SelectItem value="all">Todos os meses</SelectItem>
                     {monthOptions.map(option => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}

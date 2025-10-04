@@ -28,11 +28,15 @@ export function ThemeProvider({
   storageKey = "ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage?.getItem(storageKey) as Theme) || defaultTheme
-  )
+  const [theme, setTheme] = useState<Theme>(defaultTheme)
 
   useEffect(() => {
+    // Carregar tema do localStorage no cliente
+    const storedTheme = localStorage?.getItem(storageKey) as Theme
+    if (storedTheme) {
+      setTheme(storedTheme)
+    }
+
     const root = window.document.documentElement
 
     root.classList.remove("light", "dark")
@@ -48,7 +52,7 @@ export function ThemeProvider({
     }
 
     root.classList.add(theme)
-  }, [theme])
+  }, [theme, storageKey])
 
   const value = {
     theme,

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/toast"
-import { useFinancialData } from "@/hooks/useFinancialData"
+import { useFinancialDataAPI } from "@/hooks/useFinancialDataAPI"
 import { formatCurrency, getCategoryName } from "@/lib/storage"
 import { ExpenseCategory, ExpenseCategoryKey } from "@/lib/types"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -36,7 +36,7 @@ const fixedExpenseFormSchema = z.object({
 type FixedExpenseFormData = z.infer<typeof fixedExpenseFormSchema>
 
 export default function FixedExpensesPage() {
-  const { data, addFixedExpense, updateFixedExpense, deleteFixedExpense, isLoading } = useFinancialData()
+  const { data, addFixedExpense, updateFixedExpense, deleteFixedExpense, isLoading } = useFinancialDataAPI()
   const { toast } = useToast()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingExpense, setEditingExpense] = useState<string | null>(null)
@@ -79,7 +79,7 @@ export default function FixedExpensesPage() {
       }
       reset()
       setIsDialogOpen(false)
-    } catch (error) {
+    } catch {
       toast({
         type: "error",
         title: "Erro ao salvar",

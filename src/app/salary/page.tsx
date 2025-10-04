@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useFinancialData } from "@/hooks/useFinancialData"
+import { useFinancialDataAPI } from "@/hooks/useFinancialDataAPI"
 import { formatCurrency } from "@/lib/storage"
 import { salarySchema } from "@/lib/types"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -19,7 +19,7 @@ const salaryFormSchema = salarySchema.omit({ updatedAt: true })
 type SalaryFormData = z.infer<typeof salaryFormSchema>
 
 export default function SalaryPage() {
-  const { data, updateSalary, clearSalary, isLoading } = useFinancialData()
+  const { data, updateSalary, clearSalary, isLoading } = useFinancialDataAPI()
   const [isEditing, setIsEditing] = useState(false)
 
   const {
@@ -169,7 +169,7 @@ export default function SalaryPage() {
                 <div>
                   <Label className="text-sm text-muted-foreground">Última Atualização</Label>
                   <p className="text-sm">
-                    {data.salary.updatedAt.toLocaleDateString("pt-BR", {
+                    {new Date(data.salary.updatedAt).toLocaleDateString("pt-BR", {
                       day: "2-digit",
                       month: "2-digit",
                       year: "numeric",

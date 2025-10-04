@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Tabela para salário (mantida para compatibilidade)
+model Salary {
+  id          String   @id @default(cuid())
+  amount      Float
+  description String
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
+
+// Tabela para receitas fixas
+model FixedIncome {
+  id          String   @id @default(cuid())
+  name        String
+  amount      Float
+  type        String   // "salary", "other"
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Tabela para receitas variáveis
+model VariableIncome {
+  id          String   @id @default(cuid())
+  name        String
+  amount      Float
+  type        String   // "freelance", "business", "investment", "other"
+  description String?
+  date        DateTime
+  createdAt   DateTime @default(now())
+}
+
+// Tabela para investimentos
+model Investment {
+  id            String   @id @default(cuid())
+  name          String
+  type          String   // "stocks", "bonds", "funds", "crypto", "real_estate", "other"
+  initialAmount Float
+  currentAmount Float
+  purchaseDate  DateTime
+  description   String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Tabela para gastos fixos
+model FixedExpense {
+  id          String   @id @default(cuid())
+  name        String
+  amount      Float
+  category    String   // "moradia", "transporte", "alimentacao", "saude", "educacao", "lazer", "outros"
+  description String?
+  dueDay      Int      // Dia do mês (1-31)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Tabela para gastos variáveis
+model VariableExpense {
+  id          String   @id @default(cuid())
+  name        String
+  amount      Float
+  category    String   // "moradia", "transporte", "alimentacao", "saude", "educacao", "lazer", "outros"
+  description String?
+  date        DateTime
+  createdAt   DateTime @default(now())
+}

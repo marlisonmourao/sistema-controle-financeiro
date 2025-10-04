@@ -5,15 +5,15 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useFinancialData } from "@/hooks/useFinancialData"
-import { formatCurrency, getCategoryColor, getCategoryName } from "@/lib/storage"
-import { ExpenseCategoryKey } from "@/lib/types"
+import { useFinancialDataAPI } from "@/hooks/useFinancialDataAPI"
+import { formatCurrency, getCategoryColor, getCategoryName, getIncomeTypeColor, getIncomeTypeName } from "@/lib/storage"
+import { ExpenseCategoryKey, IncomeTypeKey } from "@/lib/types"
 import { AlertCircle, DollarSign, Plus, Receipt, Sparkles, Target, TrendingDown, TrendingUp, Wallet } from "lucide-react"
 import Link from "next/link"
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 export default function Dashboard() {
-  const { data, summary, isLoading } = useFinancialData()
+  const { data, summary, isLoading } = useFinancialDataAPI()
 
   if (isLoading) {
     return (
@@ -64,8 +64,8 @@ export default function Dashboard() {
     )
   }
 
-  // Preparar dados para gráfico de pizza (categorias)
-  const pieData = Object.entries(summary.expensesByCategory)
+  // Preparar dados para gráfico de pizza (categorias de gastos)
+  const expensesPieData = Object.entries(summary.expensesByCategory)
     .filter(([, value]) => value > 0)
     .map(([category, value]) => ({
       name: getCategoryName(category as ExpenseCategoryKey),
@@ -73,10 +73,19 @@ export default function Dashboard() {
       color: getCategoryColor(category as ExpenseCategoryKey)
     }))
 
+  // Preparar dados para gráfico de pizza (tipos de receita)
+  const incomePieData = Object.entries(summary.incomeByType)
+    .filter(([, value]) => value > 0)
+    .map(([type, value]) => ({
+      name: getIncomeTypeName(type as IncomeTypeKey),
+      value,
+      color: getIncomeTypeColor(type as IncomeTypeKey)
+    }))
+
   // Preparar dados para gráfico de barras (comparativo)
   const barData = [
     {
-      name: "Receita",
+      name: "Receita Total",
       valor: summary.totalIncome,
       fill: "#22c55e"
     },
@@ -92,7 +101,7 @@ export default function Dashboard() {
     }
   ]
 
-  const hasData = data.salary || data.fixedExpenses.length > 0 || data.variableExpenses.length > 0
+  const hasData = data.salary || data.fixedIncomes.length > 0 || data.variableIncomes.length > 0 || data.investments.length > 0 || data.fixedExpenses.length > 0 || data.variableExpenses.length > 0
 
   return (
     <MainLayout>
@@ -184,13 +193,27 @@ export default function Dashboard() {
                   <div className="text-2xl font-bold text-green-700 dark:text-green-400 mb-2">
                     {formatCurrency(summary.totalIncome)}
                   </div>
-                  {!data.salary && (
-                    <Badge variant="outline" className="border-green-200 text-green-700 dark:border-green-800 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors">
-                      <Link href="/salary" className="text-xs">
-                        + Cadastrar salário
-                      </Link>
-                    </Badge>
-                  )}
+                  <div className="text-xs text-green-600 dark:text-green-400 space-y-1">
+                    <div>Fixa: {formatCurrency(summary.totalFixedIncome)}</div>
+                    <div>Variável: {formatCurrency(summary.totalVariableIncome)}</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-sm border-0 bg-gradient-to-br from-blue-50 via-blue-50 to-blue-100 dark:from-blue-950/50 dark:via-blue-950/30 dark:to-blue-900/50 transition-all duration-300 hover:shadow-md hover:scale-[1.02]">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-semibold text-blue-800 dark:text-blue-200">Investimentos</CardTitle>
+                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+                    <TrendingUp className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-700 dark:text-blue-400 mb-2">
+                    {formatCurrency(summary.totalInvestmentValue)}
+                  </div>
+                  <div className="text-xs text-blue-600 dark:text-blue-400">
+                    {summary.investmentPerformance >= 0 ? "+" : ""}{summary.investmentPerformance.toFixed(2)}% performance
+                  </div>
                 </CardContent>
               </Card>
 
@@ -322,25 +345,25 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              {/* Gráfico de Pizza - Gastos por Categoria */}
+              {/* Gráfico de Pizza - Receitas por Tipo */}
               <Card className="shadow-sm border-0 bg-gradient-to-br from-card to-card/50 transition-all duration-300 hover:shadow-md">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 rounded-lg bg-primary/10">
-                      <Receipt className="h-4 w-4 text-primary" />
+                      <TrendingUp className="h-4 w-4 text-primary" />
                     </div>
-                    <CardTitle className="text-lg font-semibold">Gastos por Categoria</CardTitle>
+                    <CardTitle className="text-lg font-semibold">Receitas por Tipo</CardTitle>
                   </div>
                   <CardDescription className="text-sm">
-                    Distribuição dos seus gastos por categoria
+                    Distribuição das suas receitas por tipo
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {pieData.length > 0 ? (
+                  {incomePieData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
                       <PieChart>
                         <Pie
-                          data={pieData}
+                          data={incomePieData}
                           cx="50%"
                           cy="50%"
                           labelLine={false}
@@ -351,7 +374,7 @@ export default function Dashboard() {
                           stroke="hsl(var(--background))"
                           strokeWidth={2}
                         >
-                          {pieData.map((entry, index) => (
+                          {incomePieData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
@@ -373,13 +396,13 @@ export default function Dashboard() {
                           <AlertCircle className="h-8 w-8" />
                         </div>
                         <div className="space-y-2">
-                          <p className="font-medium">Nenhum gasto cadastrado ainda</p>
-                          <p className="text-sm text-muted-foreground">Adicione seus gastos para ver a distribuição</p>
+                          <p className="font-medium">Nenhuma receita cadastrada ainda</p>
+                          <p className="text-sm text-muted-foreground">Adicione suas receitas para ver a distribuição</p>
                         </div>
                         <Button asChild size="sm" className="shadow-sm">
-                          <Link href="/fixed-expenses">
+                          <Link href="/fixed-incomes">
                             <Plus className="h-4 w-4 mr-2" />
-                            Adicionar Gastos
+                            Adicionar Receitas
                           </Link>
                         </Button>
                       </div>
@@ -388,6 +411,54 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Gráfico de Pizza - Gastos por Categoria */}
+            {expensesPieData.length > 0 && (
+              <Card className="shadow-sm border-0 bg-gradient-to-br from-card to-card/50 transition-all duration-300 hover:shadow-md">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-primary/10">
+                      <Receipt className="h-4 w-4 text-primary" />
+                    </div>
+                    <CardTitle className="text-lg font-semibold">Gastos por Categoria</CardTitle>
+                  </div>
+                  <CardDescription className="text-sm">
+                    Distribuição dos seus gastos por categoria
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={expensesPieData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
+                        outerRadius={90}
+                        fill="#8884d8"
+                        dataKey="value"
+                        stroke="hsl(var(--background))"
+                        strokeWidth={2}
+                      >
+                        {expensesPieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value) => formatCurrency(Number(value))}
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Resumo Rápido */}
             <Card className="shadow-sm border-0 bg-gradient-to-br from-card to-card/50 transition-all duration-300 hover:shadow-md">
@@ -403,13 +474,37 @@ export default function Dashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 transition-colors hover:bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/50">
+                        <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <span className="text-sm font-medium">Receitas fixas</span>
+                    </div>
+                    <Badge variant="secondary" className="font-semibold">
+                      {data.fixedIncomes.length}
+                    </Badge>
+                  </div>
+                  
                   <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 transition-colors hover:bg-muted/50">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                        <Receipt className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       </div>
-                      <span className="text-sm font-medium">Gastos fixos cadastrados</span>
+                      <span className="text-sm font-medium">Investimentos</span>
+                    </div>
+                    <Badge variant="secondary" className="font-semibold">
+                      {data.investments.length}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 transition-colors hover:bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/50">
+                        <Receipt className="h-4 w-4 text-red-600 dark:text-red-400" />
+                      </div>
+                      <span className="text-sm font-medium">Gastos fixos</span>
                     </div>
                     <Badge variant="secondary" className="font-semibold">
                       {data.fixedExpenses.length}
@@ -421,7 +516,7 @@ export default function Dashboard() {
                       <div className="p-2 rounded-full bg-orange-100 dark:bg-orange-900/50">
                         <TrendingDown className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                       </div>
-                      <span className="text-sm font-medium">Gastos variáveis este mês</span>
+                      <span className="text-sm font-medium">Gastos variáveis</span>
                     </div>
                     <Badge variant="secondary" className="font-semibold">
                       {data.variableExpenses.filter(e => {
@@ -429,21 +524,6 @@ export default function Dashboard() {
                         const expenseDate = new Date(e.date)
                         return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear()
                       }).length}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 transition-colors hover:bg-muted/50">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/50">
-                        <Target className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      </div>
-                      <span className="text-sm font-medium">Maior categoria</span>
-                    </div>
-                    <Badge variant="outline" className="font-semibold">
-                      {pieData.length > 0 
-                        ? pieData.reduce((prev, current) => (prev.value > current.value) ? prev : current).name
-                        : "Nenhuma"
-                      }
                     </Badge>
                   </div>
                 </div>

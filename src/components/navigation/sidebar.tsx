@@ -9,6 +9,7 @@ import {
     Menu,
     Receipt,
     TrendingDown,
+    TrendingUp,
     Wallet,
     X
 } from "lucide-react"
@@ -37,6 +38,21 @@ const navItems: NavItem[] = [
     title: "Salário",
     href: "/salary",
     icon: DollarSign
+  },
+  {
+    title: "Receitas Fixas",
+    href: "/fixed-incomes",
+    icon: DollarSign
+  },
+  {
+    title: "Receitas Variáveis",
+    href: "/variable-incomes",
+    icon: TrendingUp
+  },
+  {
+    title: "Investimentos",
+    href: "/investments",
+    icon: TrendingUp
   },
   {
     title: "Gastos Fixos",
